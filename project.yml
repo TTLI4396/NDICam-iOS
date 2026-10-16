@@ -23,8 +23,6 @@ targets:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
           - UIInterfaceOrientationLandscapeRight
-        NSCameraUsageDescription: "NDI 发送需要访问摄像头采集画面"
-        NSMicrophoneUsageDescription: "NDI 发送需要访问麦克风采集声音"
         NSLocalNetworkUsageDescription: "NDI 需要在局域网中发现和连接 NDI 设备"
         NSBonjourServices:
           - _ndi._tcp
