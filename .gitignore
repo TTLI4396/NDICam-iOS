@@ -1,0 +1,8 @@
+NDI SDK for Apple/
+Install_NDI_SDK_v6_Apple/
+Install_NDI_SDK_v6_Apple.pkg
+NDICam.xcodeproj/
+build/
+*.xcarchive
+*.ipa
+.DS_Store

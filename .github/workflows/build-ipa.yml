@@ -1,0 +1,49 @@
+name: Build iOS IPA
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download and extract NDI SDK for Apple
+        run: |
+          curl -fL --retry 3 -o /tmp/Install_NDI_SDK_v6_Apple.pkg \
+            "https://downloads.ndi.tv/SDK/NDI_SDK_Mac/Install_NDI_SDK_v6_Apple.pkg"
+          pkgutil --expand-full /tmp/Install_NDI_SDK_v6_Apple.pkg /tmp/ndi_sdk
+          SDK_SRC="$(dirname "$(find /tmp/ndi_sdk -name 'libndi_ios.a' -path '*/lib/iOS/*' | head -1)")/../.."
+          cp -R "$SDK_SRC" "$GITHUB_WORKSPACE/NDI SDK for Apple"
+          ls -la "$GITHUB_WORKSPACE/NDI SDK for Apple/lib/iOS/"
+
+      - name: Install xcodegen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Archive (unsigned)
+        run: |
+          xcodebuild archive \
+            -project NDICam.xcodeproj \
+            -scheme NDICam \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/NDICam.xcarchive \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=""
+
+      - name: Package IPA
+        run: |
+          mkdir -p build/Payload
+          cp -R build/NDICam.xcarchive/Products/Applications/NDICam.app build/Payload/
+          cd build && zip -qry NDICam.ipa Payload
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: NDICam-unsigned-ipa
+          path: build/NDICam.ipa

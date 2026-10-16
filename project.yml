@@ -1,0 +1,66 @@
+name: NDICam
+options:
+  bundleIdPrefix: com.ndicam
+  deploymentTarget:
+    iOS: "15.0"
+targets:
+  NDICam:
+    type: application
+    platform: iOS
+    deploymentTarget: "15.0"
+    sources:
+      - path: NDICam
+    info:
+      path: NDICam/Info.plist
+      properties:
+        CFBundleName: NDICam
+        CFBundleDisplayName: NDI Camera
+        CFBundleShortVersionString: "1.0"
+        CFBundleVersion: "1"
+        UILaunchScreen:
+          UIColorName: ""
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        NSCameraUsageDescription: "NDI 发送需要访问摄像头采集画面"
+        NSMicrophoneUsageDescription: "NDI 发送需要访问麦克风采集声音"
+        NSLocalNetworkUsageDescription: "NDI 需要在局域网中发现和连接 NDI 设备"
+        NSBonjourServices:
+          - _ndi._tcp
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.ndicam.ios
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SWIFT_VERSION: "5.0"
+        CLANG_CXX_LANGUAGE_STANDARD: "gnu++17"
+        CLANG_CXX_LIBRARY: "libc++"
+        GCC_ENABLE_CPP_EXCEPTIONS: YES
+        GCC_ENABLE_CPP_RTTI: YES
+        SWIFT_OBJC_BRIDGING_HEADER: "NDICam/Bridge/NDICam-Bridging-Header.h"
+        HEADER_SEARCH_PATHS: "\"$(SRCROOT)/NDI SDK for Apple/include\""
+        LIBRARY_SEARCH_PATHS: "\"$(SRCROOT)/NDI SDK for Apple/lib/iOS\""
+        OTHER_LDFLAGS:
+          - "-lndi_ios"
+          - "-lc++"
+        ENABLE_BITCODE: NO
+        CODE_SIGN_STYLE: Automatic
+        DEVELOPMENT_TEAM: ""
+    dependencies:
+      - sdk: Accelerate.framework
+      - sdk: VideoToolbox.framework
+      - sdk: AVFoundation.framework
+      - sdk: CoreMedia.framework
+      - sdk: CoreVideo.framework
+      - sdk: CoreGraphics.framework
+      - sdk: Foundation.framework
+      - sdk: UIKit.framework
+schemes:
+  NDICam:
+    build:
+      targets:
+        NDICam: all
+    run:
+      config: Debug
+    archive:
+      config: Release
