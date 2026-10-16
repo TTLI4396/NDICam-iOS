@@ -9,7 +9,6 @@ struct BroadcastPicker: UIViewControllerRepresentable {
         DispatchQueue.main.async {
             RPBroadcastActivityViewController.load { broadcastVC, _ in
                 guard let broadcastVC = broadcastVC else { return }
-                broadcastVC.preferredExtension = "com.ndicam.ios.BroadcastExt"
                 vc.present(broadcastVC, animated: true)
             }
         }
