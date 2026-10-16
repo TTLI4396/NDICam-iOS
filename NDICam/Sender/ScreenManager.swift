@@ -13,6 +13,8 @@ final class ScreenManager: NSObject, ObservableObject {
     private let recorder = RPScreenRecorder.shared()
     private let sender = NDISenderBridge()
     private var backgroundTask: UIBackgroundTaskIdentifier = .invalid
+    private var ciContext = CIContext()
+    private var bgraBuffer: CVPixelBuffer?
     private(set) var ndiName: String
 
     init(ndiName: String) {
@@ -60,12 +62,26 @@ final class ScreenManager: NSObject, ObservableObject {
     private func processVideoFrame(_ sampleBuffer: CMSampleBuffer) {
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
 
+        let fullWidth = CVPixelBufferGetWidth(pixelBuffer)
+        let fullHeight = CVPixelBufferGetHeight(pixelBuffer)
+        let size = min(cropSize, min(fullWidth, fullHeight))
+        let format = CVPixelBufferGetPixelFormatType(pixelBuffer)
+
+        if format == kCVPixelFormatType_32BGRA {
+            // 零拷贝快路径：指针偏移裁剪
+            sendBGRAFromBuffer(pixelBuffer, size: size)
+        } else {
+            // YCbCr 等格式：CoreImage 转 BGRA + 中心裁剪
+            convertAndSend(pixelBuffer, size: size)
+        }
+    }
+
+    private func sendBGRAFromBuffer(_ pixelBuffer: CVPixelBuffer, size: Int) {
         CVPixelBufferLockBaseAddress(pixelBuffer, .readOnly)
         defer { CVPixelBufferUnlockBaseAddress(pixelBuffer, .readOnly) }
 
         let fullWidth = CVPixelBufferGetWidth(pixelBuffer)
         let fullHeight = CVPixelBufferGetHeight(pixelBuffer)
-        let size = min(cropSize, min(fullWidth, fullHeight))
         let stride = CVPixelBufferGetBytesPerRow(pixelBuffer)
         let offsetX = (fullWidth - size) / 2
         let offsetY = (fullHeight - size) / 2
@@ -81,6 +97,64 @@ final class ScreenManager: NSObject, ObservableObject {
             frameRateN: 60,
             frameRateD: 1
         )
+    }
+
+    private func convertAndSend(_ pixelBuffer: CVPixelBuffer, size: Int) {
+        prepareBGRABuffer(size: size)
+        guard let dst = bgraBuffer else { return }
+
+        let fullWidth = CVPixelBufferGetWidth(pixelBuffer)
+        let fullHeight = CVPixelBufferGetHeight(pixelBuffer)
+        let cropRect = CGRect(
+            x: CGFloat(fullWidth - size) / 2,
+            y: CGFloat(fullHeight - size) / 2,
+            width: CGFloat(size),
+            height: CGFloat(size)
+        )
+
+        let image = CIImage(cvPixelBuffer: pixelBuffer)
+            .cropped(to: cropRect)
+            .transformed(by: CGAffineTransform(translationX: -cropRect.origin.x, y: -cropRect.origin.y))
+
+        ciContext.render(
+            image,
+            to: dst,
+            bounds: CGRect(x: 0, y: 0, width: size, height: size),
+            colorSpace: CGColorSpaceCreateDeviceRGB()
+        )
+
+        CVPixelBufferLockBaseAddress(dst, .readOnly)
+        defer { CVPixelBufferUnlockBaseAddress(dst, .readOnly) }
+        guard let base = CVPixelBufferGetBaseAddress(dst) else { return }
+
+        sender.sendVideoFrameBGRA(
+            base.assumingMemoryBound(to: UInt8.self),
+            width: Int32(size),
+            height: Int32(size),
+            bytesPerRow: Int32(CVPixelBufferGetBytesPerRow(dst)),
+            frameRateN: 60,
+            frameRateD: 1
+        )
+    }
+
+    private func prepareBGRABuffer(size: Int) {
+        if let pb = bgraBuffer,
+           CVPixelBufferGetWidth(pb) == size,
+           CVPixelBufferGetHeight(pb) == size {
+            return
+        }
+        bgraBuffer = nil
+        var pb: CVPixelBuffer?
+        let attrs: [String: Any] = [
+            kCVPixelBufferCGImageCompatibilityKey as String: true,
+            kCVPixelBufferCGBitmapContextCompatibilityKey as String: true
+        ]
+        CVPixelBufferCreate(
+            kCFAllocatorDefault, size, size,
+            kCVPixelFormatType_32BGRA,
+            attrs as CFDictionary, &pb
+        )
+        bgraBuffer = pb
     }
 
     func stop() {
