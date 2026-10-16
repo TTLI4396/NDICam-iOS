@@ -1,9 +1,28 @@
 import SwiftUI
+import ReplayKit
+
+/// 系统直播选择器（Broadcast Upload Extension 入口）
+struct BroadcastPicker: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UIViewController {
+        let vc = UIViewController()
+        vc.view.backgroundColor = .clear
+        DispatchQueue.main.async {
+            RPBroadcastActivityViewController.load { broadcastVC, _ in
+                guard let broadcastVC = broadcastVC else { return }
+                broadcastVC.preferredExtension = "com.ndicam.ios.BroadcastExt"
+                vc.present(broadcastVC, animated: true)
+            }
+        }
+        return vc
+    }
+    func updateUIViewController(_ uiViewController: UIViewController, context: Context) {}
+}
 
 struct SenderView: View {
     @StateObject private var screen = ScreenManager(ndiName: "NDICam iOS")
     @State private var ndiName = "NDICam iOS"
     @State private var cropSize = 320
+    @State private var showBroadcastPicker = false
 
     private let cropSizes = [256, 320, 416]
 
@@ -57,6 +76,21 @@ struct SenderView: View {
                             .font(.caption)
                     }
 
+                    Button {
+                        showBroadcastPicker = true
+                    } label: {
+                        Label("开始直播（后台持续发送）", systemImage: "dot.radiowaves.left.and.right")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(.green)
+
+                    Text("直播模式：退后台/切 App 仍持续发送整屏中心 320×320，60fps")
+                        .font(.caption2)
+                        .foregroundColor(.secondary)
+
+                    Divider()
+
                     Picker("裁剪尺寸", selection: $cropSize) {
                         ForEach(cropSizes, id: \.self) { size in
                             Text("\(size)×\(size)").tag(size)
@@ -88,5 +122,14 @@ struct SenderView: View {
         }
         .navigationTitle("NDI 屏幕发送")
         .navigationBarTitleDisplayMode(.inline)
+        .background(
+            Group {
+                if showBroadcastPicker {
+                    BroadcastPicker()
+                        .frame(width: 0, height: 0)
+                        .onAppear { showBroadcastPicker = false }
+                }
+            }
+        )
     }
 }
