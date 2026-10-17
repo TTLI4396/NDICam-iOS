@@ -11,6 +11,9 @@ struct NDICamApp: App {
         UINavigationBar.appearance().standardAppearance = nav
         UINavigationBar.appearance().scrollEdgeAppearance = nav
         UINavigationBar.appearance().tintColor = UIColor(red: 0.4, green: 0.75, blue: 1.0, alpha: 1)
+
+        // 启动即主动请求系统录屏权限（iOS 26+）
+        NDScreenPermission.requestScreenRecordingPermission()
     }
 
     var body: some Scene {
