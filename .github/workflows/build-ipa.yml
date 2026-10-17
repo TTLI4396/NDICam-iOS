@@ -18,6 +18,12 @@ jobs:
           cp -R "$SDK_SRC" "$GITHUB_WORKSPACE/NDI SDK for Apple"
           ls -la "$GITHUB_WORKSPACE/NDI SDK for Apple/lib/iOS/"
 
+      - name: Select Xcode 27 (iPadOS 27 SDK)
+        run: |
+          ls -d /Applications/Xcode*.app
+          sudo xcode-select -s "$(ls -d /Applications/Xcode_27*.app | sort -V | tail -1)/Contents/Developer"
+          xcodebuild -version
+
       - name: Install xcodegen
         run: brew install xcodegen
 
