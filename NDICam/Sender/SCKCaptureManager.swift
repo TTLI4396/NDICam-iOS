@@ -26,7 +26,6 @@ final class SCKCaptureManager: NSObject, ObservableObject {
         }
 
         let picker = SCContentSharingPicker.shared
-        picker.maximumStreamCount = 1
         var pickerConfig = SCContentSharingPickerConfiguration()
         pickerConfig.showsMicrophoneControl = false
         picker.defaultConfiguration = pickerConfig
@@ -68,10 +67,8 @@ final class SCKCaptureManager: NSObject, ObservableObject {
         let scale = CGFloat(filter.pointPixelScale)
         config.width = max(2, Int(filter.contentRect.width * scale))
         config.height = max(2, Int(filter.contentRect.height * scale))
-        config.minimumFrameInterval = CMTime(value: 1, timescale: 60)
-        config.pixelFormat = kCVPixelFormatType_32BGRA
-        config.queueDepth = 4
-        config.showsCursor = false
+        // 注意：iOS 端 SCStreamConfiguration 仅开放 width/height；
+        // 帧率/像素格式由系统决定（iPadOS 27 上限 60fps），非 BGRA 由 CoreImage 转换
 
         let newStream = SCStream(filter: filter, configuration: config, delegate: self)
         do {
