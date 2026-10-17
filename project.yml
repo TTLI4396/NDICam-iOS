@@ -26,6 +26,8 @@ targets:
         NSLocalNetworkUsageDescription: "NDI 需要在局域网中发现和连接 NDI 设备"
         NSBonjourServices:
           - _ndi._tcp
+        UIBackgroundModes:
+          - screen-capture
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ndicam.ios
@@ -54,48 +56,13 @@ targets:
       - sdk: Foundation.framework
       - sdk: UIKit.framework
       - sdk: ReplayKit.framework
-      - target: BroadcastExt
-        embed: true
-  BroadcastExt:
-    type: app-extension
-    platform: iOS
-    deploymentTarget: "15.0"
-    sources:
-      - path: BroadcastExt
-      - path: NDICam/Bridge
-    settings:
-      base:
-        INFOPLIST_FILE: "BroadcastExt/Info.plist"
-        PRODUCT_BUNDLE_IDENTIFIER: com.ndicam.ios.BroadcastExt
-        SWIFT_VERSION: "5.0"
-        CLANG_CXX_LANGUAGE_STANDARD: "gnu++17"
-        CLANG_CXX_LIBRARY: "libc++"
-        GCC_ENABLE_CPP_EXCEPTIONS: YES
-        GCC_ENABLE_CPP_RTTI: YES
-        SWIFT_OBJC_BRIDGING_HEADER: "NDICam/Bridge/NDICam-Bridging-Header.h"
-        HEADER_SEARCH_PATHS: "\"$(SRCROOT)/NDI SDK for Apple/include\""
-        LIBRARY_SEARCH_PATHS: "\"$(SRCROOT)/NDI SDK for Apple/lib/iOS\""
-        OTHER_LDFLAGS:
-          - "-lndi_ios"
-          - "-lc++"
-        ENABLE_BITCODE: NO
-        CODE_SIGN_STYLE: Automatic
-        DEVELOPMENT_TEAM: ""
-    dependencies:
-      - sdk: Accelerate.framework
-      - sdk: VideoToolbox.framework
-      - sdk: CoreMedia.framework
-      - sdk: CoreVideo.framework
-      - sdk: CoreImage.framework
-      - sdk: ReplayKit.framework
-      - sdk: Foundation.framework
-      - sdk: UIKit.framework
+      - sdk: ScreenCaptureKit.framework
+        weak: true
 schemes:
   NDICam:
     build:
       targets:
         NDICam: all
-        BroadcastExt: all
     run:
       config: Debug
     archive:
