@@ -36,6 +36,13 @@ jobs:
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGN_IDENTITY=""
 
+      - name: Ad-hoc sign (re-signing tool friendly)
+        run: |
+          APP="build/NDICam.xcarchive/Products/Applications/NDICam.app"
+          codesign --force --sign - --timestamp=none "$APP/PlugIns/BroadcastExt.appex"
+          codesign --force --sign - --timestamp=none "$APP"
+          codesign -dv "$APP/PlugIns/BroadcastExt.appex" 2>&1 | head -5
+
       - name: Package IPA
         run: |
           mkdir -p build/Payload
