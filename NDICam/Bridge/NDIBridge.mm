@@ -3,6 +3,8 @@
 #import <atomic>
 
 #import <Processing.NDI.Lib.h>
+#import <ReplayKit/ReplayKit.h>
+#import <objc/message.h>
 
 #pragma mark - NDISource
 
@@ -226,6 +228,35 @@
 
 - (void)dealloc {
     [self stop];
+}
+
+@end
+
+#pragma mark - NDScreenPermission
+
+@implementation NDScreenPermission
+
++ (void)requestScreenRecordingPermission {
+    RPScreenRecorder *recorder = [RPScreenRecorder sharedRecorder];
+
+    // iOS 26+：带回调的请求接口（动态派发，避免旧 SDK 编译错误）
+    SEL selWithCompletion = NSSelectorFromString(@"requestScreenRecordingPermissionWithCompletionHandler:");
+    if ([recorder respondsToSelector:selWithCompletion]) {
+        id completion = ^(NSError * _Nullable error) {
+            if (error) {
+                NSLog(@"[NDICam] screen recording permission error: %@", error);
+            }
+        };
+        ((void (*)(id, SEL, id))objc_msgSend)(recorder, selWithCompletion, completion);
+        return;
+    }
+
+    // 备选：无回调形式
+    SEL selSimple = NSSelectorFromString(@"requestScreenRecordingPermission");
+    if ([recorder respondsToSelector:selSimple]) {
+        ((void (*)(id, SEL))objc_msgSend)(recorder, selSimple);
+    }
+    // 旧系统无此 API：系统在首次开始直播时自动弹权限框，无需处理
 }
 
 @end
