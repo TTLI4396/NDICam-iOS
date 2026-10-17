@@ -1,45 +1,59 @@
 import SwiftUI
-import ReplayKit
 
-/// 系统直播按钮引用 + 程序化触发（整块区域可点）
-final class BroadcastPickerRef {
-    weak var picker: RPSystemBroadcastPickerView?
+/// iPadOS 27+ 系统采集区块（ScreenCaptureKit，退后台持续）
+@available(iOS 27.0, *)
+struct SCKSection: View {
+    @StateObject private var sck = SCKCaptureManager()
+    let ndiName: String
+    let cropSize: Int
 
-    func trigger() {
-        guard let picker = picker else { return }
-        Self.findButton(in: picker)?.sendActions(for: .touchUpInside)
-    }
+    var body: some View {
+        Text("系统采集（推荐 · iPadOS 27 · 退后台持续）")
+            .font(.caption.bold())
+            .foregroundColor(Color(red: 0.35, green: 0.95, blue: 0.6))
+            .frame(maxWidth: .infinity, alignment: .leading)
 
-    private static func findButton(in view: UIView) -> UIButton? {
-        if let button = view as? UIButton { return button }
-        for sub in view.subviews {
-            if let button = findButton(in: sub) { return button }
+        Button {
+            if sck.isRunning {
+                sck.stop()
+            } else {
+                sck.start(ndiName: ndiName.isEmpty ? "NDICam iOS" : ndiName,
+                          cropSize: cropSize)
+            }
+        } label: {
+            Label(sck.isRunning ? "停止系统采集" : "开始系统采集（退后台不断流）",
+                  systemImage: "dot.radiowaves.left.and.right")
+                .font(.headline)
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 50)
+                .background(
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(sck.isRunning
+                              ? Color(red: 0.85, green: 0.25, blue: 0.3)
+                              : Color(red: 0.1, green: 0.75, blue: 0.4))
+                )
         }
-        return nil
-    }
-}
 
-/// 系统直播按钮（与控制中心长按录屏同一入口，原生 UI）
-/// 本体缩小隐藏，仅用于承载系统按钮；点击由 BroadcastPickerRef.trigger() 触发
-struct SystemBroadcastPicker: UIViewRepresentable {
-    let ref: BroadcastPickerRef
+        if let error = sck.lastError {
+            Text(error)
+                .foregroundColor(Color(red: 1.0, green: 0.45, blue: 0.45))
+                .font(.caption)
+        }
 
-    func makeUIView(context: Context) -> RPSystemBroadcastPickerView {
-        let picker = RPSystemBroadcastPickerView(frame: .zero)
-        picker.preferredExtension = "com.ndicam.ios.BroadcastExt"
-        picker.showsMicrophoneButton = false
-        picker.backgroundColor = .clear
-        ref.picker = picker
-        return picker
+        Text("ScreenCaptureKit 系统采集：点击后系统选择器选\"整个屏幕\"\n退后台/切 App 持续发送中心裁剪 · 60fps")
+            .font(.caption2)
+            .foregroundColor(Color(red: 0.55, green: 0.8, blue: 0.65))
+            .multilineTextAlignment(.center)
+
+        Divider().background(Color.white.opacity(0.25))
     }
-    func updateUIView(_ uiView: RPSystemBroadcastPickerView, context: Context) {}
 }
 
 struct SenderView: View {
     @StateObject private var screen = ScreenManager(ndiName: "NDICam iOS")
     @State private var ndiName = "NDICam iOS"
     @State private var cropSize = 320
-    private let broadcastRef = BroadcastPickerRef()
 
     private let cropSizes = [256, 320, 416]
 
@@ -109,41 +123,10 @@ struct SenderView: View {
                             .font(.caption)
                     }
 
-                    // ── 直播模式（推荐，后台持续）──
-                    Text("直播模式（推荐 · 系统录屏 · 后台持续）")
-                        .font(.caption.bold())
-                        .foregroundColor(Color(red: 0.35, green: 0.95, blue: 0.6))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                    Button {
-                        // 先主动请求录屏权限（iOS 26+），稍候再弹出系统直播窗口
-                        NDScreenPermission.requestScreenRecordingPermission()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
-                            broadcastRef.trigger()
-                        }
-                    } label: {
-                        Label("开始系统直播（退后台不断流）", systemImage: "dot.radiowaves.left.and.right")
-                            .font(.headline)
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .fill(Color(red: 0.1, green: 0.75, blue: 0.4))
-                            )
+                    // ── 系统采集（iPadOS 27+，后台持续）──
+                    if #available(iOS 27.0, *) {
+                        SCKSection(ndiName: ndiName, cropSize: cropSize)
                     }
-                    .background(
-                        SystemBroadcastPicker(ref: broadcastRef)
-                            .frame(width: 1, height: 1)
-                            .opacity(0.01)
-                    )
-
-                    Text("使用 iOS 原生录屏通道：退后台/切 App 持续发送整屏中心 320×320 · 60fps\n停止：点屏幕顶部红色状态条 → 停止")
-                        .font(.caption2)
-                        .foregroundColor(Color(red: 0.55, green: 0.8, blue: 0.65))
-                        .multilineTextAlignment(.center)
-
-                    Divider().background(Color.white.opacity(0.25))
 
                     // ── 前台模式 ──
                     Text("前台模式（退后台约 30 秒后停止）")
