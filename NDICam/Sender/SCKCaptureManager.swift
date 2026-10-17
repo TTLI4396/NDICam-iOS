@@ -15,17 +15,21 @@ final class SCKCaptureManager: NSObject, ObservableObject {
     private let ciContext = CIContext()
     private var bgraBuffer: CVPixelBuffer?
     private var didAddObserver = false
+    private var pendingNDIName = "NDICam iOS"
 
     /// 弹出系统内容共享选择器（选"整个屏幕"即全屏采集）
     func start(ndiName: String, cropSize: Int) {
         self.cropSize = cropSize
+        self.pendingNDIName = ndiName
 
-        guard sender.start(withName: ndiName) else {
-            DispatchQueue.main.async { self.lastError = "NDI 发送器创建失败" }
+        let picker = SCContentSharingPicker.shared
+        guard picker.isAvailable else {
+            DispatchQueue.main.async {
+                self.lastError = "系统采集不可用（isAvailable=false）：设备/系统版本不支持，或签名缺少 screen-capture 权限"
+            }
             return
         }
 
-        let picker = SCContentSharingPicker.shared
         var pickerConfig = SCContentSharingPickerConfiguration()
         pickerConfig.showsMicrophoneControl = false
         picker.defaultConfiguration = pickerConfig
@@ -34,6 +38,12 @@ final class SCKCaptureManager: NSObject, ObservableObject {
             didAddObserver = true
         }
         picker.present()
+
+        // 诊断：1.5 秒后选择器仍未激活则提示
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+            guard let self = self, self.stream == nil, !picker.isActive else { return }
+            self.lastError = "系统选择器未弹出（isActive=false）：可能签名工具未保留 screen-capture 后台模式"
+        }
     }
 
     func stop() {
@@ -57,6 +67,12 @@ final class SCKCaptureManager: NSObject, ObservableObject {
     }
 
     private func startStream(with filter: SCContentFilter) {
+        // 选择器返回后才开始 NDI 发送
+        guard sender.start(withName: pendingNDIName) else {
+            DispatchQueue.main.async { self.lastError = "NDI 发送器创建失败" }
+            return
+        }
+
         // 停掉旧流
         if let old = stream {
             stream = nil
