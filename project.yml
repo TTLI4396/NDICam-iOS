@@ -26,8 +26,6 @@ targets:
         NSLocalNetworkUsageDescription: "NDI 需要在局域网中发现和连接 NDI 设备"
         NSBonjourServices:
           - _ndi._tcp
-        UIBackgroundModes:
-          - screen-capture
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ndicam.ios
