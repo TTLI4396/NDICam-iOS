@@ -36,4 +36,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)stop;
 @end
 
+/// 主动请求系统录屏权限（iOS 26+；旧系统为空操作，由系统在首次直播时自动弹出）
+@interface NDScreenPermission : NSObject
++ (void)requestScreenRecordingPermission;
+@end
+
 NS_ASSUME_NONNULL_END
