@@ -116,7 +116,11 @@ struct SenderView: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
 
                     Button {
-                        broadcastRef.trigger()
+                        // 先主动请求录屏权限（iOS 26+），稍候再弹出系统直播窗口
+                        NDScreenPermission.requestScreenRecordingPermission()
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+                            broadcastRef.trigger()
+                        }
                     } label: {
                         Label("开始系统直播（退后台不断流）", systemImage: "dot.radiowaves.left.and.right")
                             .font(.headline)
