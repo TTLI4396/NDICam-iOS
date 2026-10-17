@@ -1,14 +1,35 @@
 import SwiftUI
 import ReplayKit
 
+/// 系统直播按钮引用 + 程序化触发（整块区域可点）
+final class BroadcastPickerRef {
+    weak var picker: RPSystemBroadcastPickerView?
+
+    func trigger() {
+        guard let picker = picker else { return }
+        Self.findButton(in: picker)?.sendActions(for: .touchUpInside)
+    }
+
+    private static func findButton(in view: UIView) -> UIButton? {
+        if let button = view as? UIButton { return button }
+        for sub in view.subviews {
+            if let button = findButton(in: sub) { return button }
+        }
+        return nil
+    }
+}
+
 /// 系统直播按钮（与控制中心长按录屏同一入口，原生 UI）
-/// 由系统进程启动直播扩展，多任务/尺寸变化不会像应用内启动那样被中断
+/// 本体缩小隐藏，仅用于承载系统按钮；点击由 BroadcastPickerRef.trigger() 触发
 struct SystemBroadcastPicker: UIViewRepresentable {
+    let ref: BroadcastPickerRef
+
     func makeUIView(context: Context) -> RPSystemBroadcastPickerView {
         let picker = RPSystemBroadcastPickerView(frame: .zero)
         picker.preferredExtension = "com.ndicam.ios.BroadcastExt"
         picker.showsMicrophoneButton = false
         picker.backgroundColor = .clear
+        ref.picker = picker
         return picker
     }
     func updateUIView(_ uiView: RPSystemBroadcastPickerView, context: Context) {}
@@ -18,6 +39,7 @@ struct SenderView: View {
     @StateObject private var screen = ScreenManager(ndiName: "NDICam iOS")
     @State private var ndiName = "NDICam iOS"
     @State private var cropSize = 320
+    private let broadcastRef = BroadcastPickerRef()
 
     private let cropSizes = [256, 320, 416]
 
@@ -93,21 +115,24 @@ struct SenderView: View {
                         .foregroundColor(Color(red: 0.35, green: 0.95, blue: 0.6))
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(red: 0.1, green: 0.75, blue: 0.4))
-                        HStack(spacing: 8) {
-                            Spacer()
-                            Text("点左侧图标开始系统直播")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .padding(.trailing, 16)
-                        }
-                        SystemBroadcastPicker()
+                    Button {
+                        broadcastRef.trigger()
+                    } label: {
+                        Label("开始系统直播（退后台不断流）", systemImage: "dot.radiowaves.left.and.right")
+                            .font(.headline)
+                            .foregroundColor(.white)
                             .frame(maxWidth: .infinity)
                             .frame(height: 50)
+                            .background(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .fill(Color(red: 0.1, green: 0.75, blue: 0.4))
+                            )
                     }
-                    .frame(height: 50)
+                    .background(
+                        SystemBroadcastPicker(ref: broadcastRef)
+                            .frame(width: 1, height: 1)
+                            .opacity(0.01)
+                    )
 
                     Text("使用 iOS 原生录屏通道：退后台/切 App 持续发送整屏中心 320×320 · 60fps\n停止：点屏幕顶部红色状态条 → 停止")
                         .font(.caption2)
