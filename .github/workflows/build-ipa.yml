@@ -5,7 +5,7 @@ on:
 
 jobs:
   build:
-    runs-on: macos-15
+    runs-on: macos-26
     steps:
       - uses: actions/checkout@v4
 
@@ -39,9 +39,8 @@ jobs:
       - name: Ad-hoc sign (re-signing tool friendly)
         run: |
           APP="build/NDICam.xcarchive/Products/Applications/NDICam.app"
-          codesign --force --sign - --timestamp=none "$APP/PlugIns/BroadcastExt.appex"
-          codesign --force --sign - --timestamp=none "$APP"
-          codesign -dv "$APP/PlugIns/BroadcastExt.appex" 2>&1 | head -5
+          codesign --force --deep --sign - --timestamp=none "$APP"
+          codesign -dv "$APP" 2>&1 | head -5
 
       - name: Package IPA
         run: |
