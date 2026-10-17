@@ -2,6 +2,17 @@ import SwiftUI
 
 @main
 struct NDICamApp: App {
+    init() {
+        // 深色导航栏 + 浅色标题（iOS 15 兼容）
+        let nav = UINavigationBarAppearance()
+        nav.configureWithOpaqueBackground()
+        nav.backgroundColor = UIColor(red: 0.05, green: 0.07, blue: 0.14, alpha: 1)
+        nav.titleTextAttributes = [.foregroundColor: UIColor(red: 0.55, green: 0.85, blue: 1.0, alpha: 1)]
+        UINavigationBar.appearance().standardAppearance = nav
+        UINavigationBar.appearance().scrollEdgeAppearance = nav
+        UINavigationBar.appearance().tintColor = UIColor(red: 0.4, green: 0.75, blue: 1.0, alpha: 1)
+    }
+
     var body: some Scene {
         WindowGroup {
             TabView {

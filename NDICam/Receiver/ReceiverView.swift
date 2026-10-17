@@ -64,10 +64,13 @@ struct ReceiverView: View {
                     .listRowBackground(Color(red: 0.06, green: 0.08, blue: 0.15))
                 }
                 .listStyle(.plain)
-                .scrollContentBackground(.hidden)
                 .background(Color(red: 0.03, green: 0.04, blue: 0.09))
             }
             .background(Color(red: 0.03, green: 0.04, blue: 0.09).ignoresSafeArea())
+            .onAppear {
+                // iOS 15 兼容：清空列表默认背景色以显示深色
+                UITableView.appearance().backgroundColor = UIColor(red: 0.03, green: 0.04, blue: 0.09, alpha: 1)
+            }
             .navigationTitle("NDI 接收")
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {

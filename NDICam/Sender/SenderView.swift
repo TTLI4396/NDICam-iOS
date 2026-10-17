@@ -160,7 +160,6 @@ struct SenderView: View {
         }
         .navigationTitle("NDI 屏幕发送")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarColorScheme(.dark, for: .navigationBar)
         .background(
             Group {
                 if showBroadcastPicker {
